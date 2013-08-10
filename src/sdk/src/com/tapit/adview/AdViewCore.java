@@ -596,6 +596,7 @@ public abstract class AdViewCore extends WebView {
                 view.setAdSize(AdView.BannerAdSize.AUTOSIZE_AD);
                 final String url = adRequest.createURL();
                 requestUrl = url;
+                boolean forceMraid = false;
                 try {
                     publishProgress(BEGIN_STATE);
 
@@ -610,6 +611,9 @@ public abstract class AdViewCore extends WebView {
                             throw new Exception(jsonObject.getString("error"));
                         }
                         else if (jsonObject.has("type")){
+                            if (jsonObject.has("mraid")) {
+                                forceMraid = jsonObject.getBoolean("mraid");
+                            }
                             typeOfBanner = jsonObject.getString("type");
                             if (TYPE_BANNER.equals(typeOfBanner)){
                                 data = (String) jsonObject.get("html");
@@ -685,7 +689,7 @@ public abstract class AdViewCore extends WebView {
 //                        view.clearCache(true);
                 
                         if (TYPE_BANNER.equals(typeOfBanner)){
-                            mraid = checkIfMraid(data);
+                            mraid = forceMraid || checkIfMraid(data);
                             data = wrapToHTML(data, mraid);
                             mContent = data;
                                                         
@@ -796,13 +800,9 @@ public abstract class AdViewCore extends WebView {
         String mraidTag = "";
         if (isMraid) {
             mraidTag = "<script type=\"text/javascript\">" +
-                    "var mraid = {\n" +
-                    "    getState: function() {return \"loading\"},\n" +
-                    "    listeners: [],\n" +
-                    "    addEventListener: function(eventName, callback) { this.listeners.push({eventName:eventName, callback:callback}); }\n" +
-                    "};\n" +
+                    MraidJS.MRAID_JS +
                     "</script>";
-          mraidTag += "<script src=\"" + mraidBridgePath + "\"></script>";
+//          mraidTag += "<script src=\"" + mraidBridgePath + "\"></script>";
         }
         return "<html><head>"
             + "<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />"
@@ -829,7 +829,6 @@ public abstract class AdViewCore extends WebView {
             lastTimerTask.cancel();
         lastTimerTask = new TimerTask() {
 
-            @TargetApi(Build.VERSION_CODES.HONEYCOMB) // API 11
             @Override
             public void run() {
                 update(false);
@@ -1118,8 +1117,6 @@ public abstract class AdViewCore extends WebView {
     }
 
     public void mraidClose() {
-        TILog.d("Close Command!");
-
         if (placeholderView != null) {
             swapViews(placeholderView, this);
             placeholderView = null;
@@ -1242,8 +1239,6 @@ public abstract class AdViewCore extends WebView {
     }
 
     public void useCustomCloseButton(boolean useCustomClose) {
-        TILog.e("useCustomCloseButton from AdViewCore!");
-        //TODO implement me!
     }
 
     public void open(String url) {
